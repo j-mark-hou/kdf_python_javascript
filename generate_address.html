@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script>
+    window.sodium = {onload: function (sodium) {}};
+    function is_ascii_str(str){
+        if(typeof(str)!=='string'){
+            return false;
+        }
+        for(var i=0;i<str.length;i++){
+            if(str.charCodeAt(i)>127){
+                return false;
+            }
+        }
+        return true
+    };
+    function getaddr(){
+        let non_ascii_message 
+            = "Username & password must only contain ASCII characters.";
+        let username = document.getElementById("username").value.trim();
+        let password = document.getElementById("password").value.trim();
+        if(!is_ascii_str(username) || !is_ascii_str(password)){
+            document.getElementById("address").innerHTML = non_ascii_message;
+            return
+        }
+        // crypto_generichash is blake2b, seems to take the input username
+        // as an ascii-encoded bytestring 
+        let salt = sodium.crypto_generichash(16, username);
+        console.log(salt);
+        let seed = sodium.crypto_pwhash(
+            outlen = 32,
+            passwd = password,
+            salt = salt,
+            // opslimit = sodium.crypto_pwhash_OPSLIMIT_SENSITIVE,
+            // memlimit = sodium.crypto_pwhash_MEMLIMIT_SENSITIVE,
+            opslimit = sodium.crypto_pwhash_OPSLIMIT_MIN,
+            memlimit = sodium.crypto_pwhash_MEMLIMIT_MIN,
+            alg = sodium.crypto_pwhash_ALG_ARGON2ID13
+        );
+        console.log(seed)
+        keypair = sodium.crypto_sign_seed_keypair(seed)
+        address_hex = sodium.to_hex(keypair['publicKey'])
+        console.log(sodium.to_hex(keypair['privateKey']))
+        console.log(address_hex)
+        document.getElementById("address").innerHTML = "Your address: " + address_hex
+    };
+</script>
+<script src="sodium.js" async></script>
+</head>
+<body>
+<h2>Generate address from username & password</h2>
+
+<label for="username">Username:</label>
+<input type="text" id="username" name="username" value="default">
+<br><br>
+<label for="password">Password:</label>
+<input type="password" id="password" name="password" value="default">
+<br><br>
+<button type="button" onclick="getaddr()">
+    Generate address (this will take a minute)
+</button>
+<p id="address"></p>
+
+
+</body>
+</html>
